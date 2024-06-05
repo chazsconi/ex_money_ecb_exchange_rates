@@ -40,8 +40,14 @@ defmodule Money.ExchangeRates.ECBExchangeRates do
   additional configuration specific to this exchange
   rates retrieval module.
   """
+  @historic_rates_cache :historic_rates_cache
+
   @impl Money.ExchangeRates
   def init(default_config) do
+    if :ets.info(@historic_rates_cache) == :undefined do
+      :ets.new(@historic_rates_cache, [:named_table, :public])
+    end
+
     url = Money.get_env(:ecb_rates_url, @ecb_rates_url)
     Map.put(default_config, :retriever_options, %{url: url})
   end
@@ -158,8 +164,25 @@ defmodule Money.ExchangeRates.ECBExchangeRates do
     end
   end
 
-  @historic_rates "/eurofxref-hist-90d.xml"
+  @historic_rates "/eurofxref-hist.xml"
   defp retrieve_historic_rates(url, config) do
-    Retriever.retrieve_rates(url <> @historic_rates, config)
+    # We need to do our own caching here as unfortunately the ExchangeRates lib
+    # assumes that each date's rate comes from a different URL, whereas with the ECB
+    # the historic rates all come from a single huge XML file, which is both
+    # slow to download and also parse.
+    case :ets.lookup(@historic_rates_cache, :rates) do
+      [] ->
+        case Retriever.retrieve_rates(url <> @historic_rates, config) do
+          {:ok, rates} ->
+            :ets.insert(@historic_rates_cache, {:rates, rates})
+            {:ok, rates}
+
+          {:error, reason} ->
+            {:error, reason}
+        end
+
+      [{:rates, rates}] ->
+        {:ok, rates}
+    end
   end
 end
