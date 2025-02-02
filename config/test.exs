@@ -1,4 +1,4 @@
-use Mix.Config
+import Config
 
 config :ex_money,
   exchange_rates_retrieve_every: :never,
