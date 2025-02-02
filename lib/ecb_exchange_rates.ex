@@ -146,14 +146,17 @@ defmodule Money.ExchangeRates.ECBExchangeRates do
     # Ensure we are not checking for date before the first available date
     case Date.compare(date, first_rate_date) do
       :lt ->
-        {:error, :no_rate_for_date}
+        # Doesn't match the behaviour, but I beleive the behaviour is wrong because
+        # the return type of the wrapping function in ExMoney has this return type
+        # so need to return this to be able to pattern match correctly in the client
+        {:error, {%Money.ExchangeRateError{}, "no_rate_for_date"}}
 
       _ ->
         sorted_rates
         |> Enum.find(fn {rate_date, _} -> Date.compare(date, rate_date) in [:lt, :eq] end)
         |> case do
           {_, rates_for_date} -> {:ok, rates_for_date}
-          nil -> {:error, :no_rate_for_date}
+          nil -> {:error, {%Money.ExchangeRateError{}, "no_rate_for_date"}}
         end
     end
   end
