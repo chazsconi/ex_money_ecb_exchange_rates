@@ -49,7 +49,7 @@ defmodule ECBExchangeRates.MixProject do
   defp deps do
     [
       {:ex_money, ">= 3.4.0"},
-      {:sweet_xml, "~> 0.6.6"},
+      {:sweet_xml, "~> 0.7.0"},
       {:jason, "~> 1.0", optional: true}
     ]
   end
